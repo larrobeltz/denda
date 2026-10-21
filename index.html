@@ -44,11 +44,11 @@ input:focus-visible,select:focus-visible,button:focus-visible,.prod:focus-within
 .opt{padding:10px 12px 12px}
 .opt[hidden]{display:none}
 .opt .f+.qty{margin-top:10px}
-.qty{display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:14px}
-.step{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:7px;overflow:hidden}
-.step button{width:40px;height:38px;border:0;background:var(--bg);font:600 20px var(--b);color:var(--ink);cursor:pointer}
+.qty{font-weight:600;font-size:14px}
+.step{display:flex;align-items:stretch;width:100%;margin-top:4px;border:1.5px solid var(--line);border-radius:7px;overflow:hidden}
+.step button{flex:0 0 44px;height:40px;border:0;background:var(--bg);font:600 22px var(--b);color:var(--ink);cursor:pointer}
 .step button:hover{background:var(--line)}
-.step output{min-width:38px;text-align:center;font-weight:600}
+.step output{flex:1;min-width:0;display:grid;place-items:center;font-weight:600;font-size:16px}
 .add{width:100%;padding:12px;border:2px dashed var(--red);background:none;color:var(--red-d);border-radius:10px;font:700 18px var(--h);text-transform:uppercase;cursor:pointer}
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.08);z-index:5}
 .bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
@@ -299,7 +299,6 @@ $('#form').addEventListener('submit', async e => {
           <p class="pay-warn">No se tramitará ningún pedido si no se ha realizado su correspondiente transferencia.</p>
         </div>
       </div>
-	  <p style="text-align: left; padding-left: 10%;">Datos de tu pedido:</p>
       <ul class="sum">${payload.rows.map(r => `<li><b>${esc(r.player)}</b>: ${r.qty > 1 ? r.qty + ' × ' : ''}${esc(r.product)}${r.size ? ' (' + esc(r.size) + ')' : ''}${r.custom ? ' · «' + esc(r.custom) + '»' : ''}</li>`).join('')}</ul></section>`;
     window.scrollTo(0, 0);
   } catch (err) {
