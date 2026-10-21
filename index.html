@@ -59,7 +59,9 @@ input:focus-visible,select:focus-visible,button:focus-visible,.prod:focus-within
 </head>
 <body>
 <header><div class="wrap hero">
-  <img src="img/logo.png" alt="Escudo Larrobeltz Alonsotegi">
+  <a href="./index.html" class="flex items-center gap-3 group py-1" aria-label="Larrobeltz Saskibaloi Taldea">
+    <img src="img/logo.png" alt="Escudo Larrobeltz Alonsotegi">
+  </a>  
   <div><h1>Tienda oficial</h1><p>Larrobeltz Alonsotegi · Equipación y complementos para las familias</p></div>
 </div></header>
 
@@ -74,9 +76,9 @@ input:focus-visible,select:focus-visible,button:focus-visible,.prod:focus-within
     </div>
   </section>
   <section>
-    <h2>Jugadores y jugadoras</h2>
+    <h2>DATOS DEL PEDIDO</h2>
     <div id="players"></div>
-    <button type="button" class="add" id="addPlayer">+ Añadir otro jugador/a</button>
+    <button type="button" class="add" id="addPlayer">+ Añadir jugador/a o familiar</button>
   </section>
   <input class="hp" type="text" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
   <div id="err" role="alert"></div>
@@ -95,7 +97,7 @@ const CONFIG = {
   endpoint: 'https://script.google.com/macros/s/AKfycby2zyWGdlsQM8KJ9mjr9BOYIUjiMY15PtTkSktA-97vt32Tb_UupDyXcPo7xNnfj6WxJQ/exec',
   maxPlayers: 5,
   // Equipos del club. Deja la lista vacía [] para ocultar este campo.
-  teams: ['Junior', 'Infantil A', 'Infantil B', 'Premini', 'Eskola'],
+  teams: ['Junior', 'Infantil A', 'Infantil B', 'Premini', 'Eskola', 'Soy familiar'],
   // Tallas reutilizables
   sizes: {
     ropa: ['6XS', '5XS', '4XS', '3XS', '2XS', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
@@ -143,7 +145,7 @@ function productHTML(p, i, prod) {
 function renderPlayers() {
   $('#players').innerHTML = players.map((p, i) => `
     <div class="player" data-i="${i}">
-      <div class="phead"><h3>Jugador/a ${i + 1}</h3>
+      <div class="phead"><h3>Jugador/a o Familiar ${i + 1}</h3>
         ${players.length > 1 ? '<button type="button" class="link" data-remove>Quitar</button>' : ''}</div>
       <div class="grid2">
         <label class="f">Nombre<input type="text" data-k="name" value="${esc(p.name)}"></label>
