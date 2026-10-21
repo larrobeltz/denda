@@ -43,6 +43,12 @@ input:focus-visible,select:focus-visible,button:focus-visible,.prod:focus-within
 .prod.on .tick{background:var(--red);border-color:var(--red)}
 .opt{padding:10px 12px 12px}
 .opt[hidden]{display:none}
+.opt .f+.qty{margin-top:10px}
+.qty{display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:14px}
+.step{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:7px;overflow:hidden}
+.step button{width:40px;height:38px;border:0;background:var(--bg);font:600 20px var(--b);color:var(--ink);cursor:pointer}
+.step button:hover{background:var(--line)}
+.step output{min-width:38px;text-align:center;font-weight:600}
 .add{width:100%;padding:12px;border:2px dashed var(--red);background:none;color:var(--red-d);border-radius:10px;font:700 18px var(--h);text-transform:uppercase;cursor:pointer}
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.08);z-index:5}
 .bar .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px}
@@ -52,6 +58,16 @@ input:focus-visible,select:focus-visible,button:focus-visible,.prod:focus-within
 #err{display:none;background:#fdeaea;border:1.5px solid var(--red);color:#7a0b0f;padding:12px 14px;border-radius:8px;margin-top:12px;font-weight:500}
 .ok{text-align:center;padding:30px 20px}.ok img{width:90px}
 .sum{text-align:left;margin:16px auto 0;max-width:460px;font-size:15px}.sum li{margin:4px 0}
+.pay{text-align:left;max-width:560px;margin:24px auto 0;background:#fff6f6;border:2px solid var(--red);border-radius:12px;overflow:hidden;box-shadow:0 6px 22px rgba(214,25,31,.18)}
+.pay-h{background:var(--red);color:#fff;padding:10px 18px;font:700 24px/1.1 var(--h);text-transform:uppercase;letter-spacing:.03em}
+.pay-b{padding:16px 18px 18px}
+.pay-b p{margin:0 0 12px}
+.pay-b .amt{font:700 28px/1 var(--h);color:var(--red-d)}
+.iban{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1.5px dashed var(--red);border-radius:8px;padding:10px 14px;margin:0 0 12px}
+.iban small{display:block;color:var(--mut);font-size:13px}
+.iban b{font:700 22px/1.2 var(--h);letter-spacing:.05em}
+.iban button{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:600 14px var(--b);cursor:pointer}
+.pay-warn{font-weight:600;color:var(--red-d);margin:14px 0 0!important}
 .hp{position:absolute;left:-9999px}
 @media(max-width:520px){.grid2{grid-template-columns:1fr}.prods{gap:8px}section{padding:16px}}
 @media(prefers-reduced-motion:no-preference){.prod{transition:border-color .15s}}
@@ -96,6 +112,8 @@ const CONFIG = {
   // URL de la aplicación web de Google Apps Script (ver apps-script.gs)
   endpoint: 'https://script.google.com/macros/s/AKfycby2zyWGdlsQM8KJ9mjr9BOYIUjiMY15PtTkSktA-97vt32Tb_UupDyXcPo7xNnfj6WxJQ/exec',
   maxPlayers: 5,
+  // Cuenta del club para las transferencias (se muestra al terminar el pedido)
+  iban: 'ES17 2095 0309 90 911425 3011',
   // Equipos del club. Deja la lista vacía [] para ocultar este campo.
   teams: ['Junior', 'Infantil A', 'Infantil B', 'Premini', 'Eskola', 'Soy familiar'],
   // Tallas reutilizables
@@ -104,10 +122,11 @@ const CONFIG = {
   },
   // Para añadir una prenda: copia una línea y cambia sus datos (y sube la foto a /img).
   // sizes: nombre de la lista de tallas | custom: pide un texto opcional (p. ej. nombre en la mochila)
+  // maxQty: permite elegir unidades (de 1 hasta ese máximo). Sin maxQty, siempre es 1 unidad.
   products: [
-    { id: 'chaqueta', name: 'Chaqueta',            price: 25, img: 'img/chaqueta.jpg', sizes: 'ropa' },
-    { id: 'camiseta', name: 'Camiseta',            price: 14, img: 'img/camiseta.jpg', sizes: 'ropa' },
-    { id: 'pantalon', name: 'Pantalón de chándal', price: 24, img: 'img/pantalon.jpg', sizes: 'ropa' },
+    { id: 'chaqueta', name: 'Chaqueta',            price: 25, img: 'img/chaqueta.jpg', sizes: 'ropa', maxQty: 10 },
+    { id: 'camiseta', name: 'Camiseta',            price: 14, img: 'img/camiseta.jpg', sizes: 'ropa', maxQty: 10 },
+    { id: 'pantalon', name: 'Pantalón de chándal', price: 24, img: 'img/pantalon.jpg', sizes: 'ropa', maxQty: 10 },
     { id: 'mochila',  name: 'Mochila con nombre',  price: 24, img: 'img/mochila.jpg',  custom: 'Nombre en la mochila (opcional)' }
   ]
 };
@@ -130,6 +149,12 @@ function productHTML(p, i, prod) {
       `</select></label>`;
   } else if (prod.custom) {
     opt = `<label class="f">${esc(prod.custom)}<input type="text" data-k="custom" maxlength="20" value="${esc(it.custom)}"></label>`;
+  }
+  if (prod.maxQty) {
+    opt += `<div class="qty"><span>Unidades</span><div class="step">
+      <button type="button" data-qty="-1" aria-label="Quitar una unidad">−</button>
+      <output>${qtyOf(it)}</output>
+      <button type="button" data-qty="1" aria-label="Añadir una unidad">+</button></div></div>`;
   }
   return `<div class="prod${on ? ' on' : ''}" data-id="${prod.id}">
     <label class="pick">
@@ -167,10 +192,12 @@ function selected() {
   }));
   return out;
 }
+const qtyOf = it => it.qty || 1;
 function updateTotal() {
-  const s = selected(), t = s.reduce((a, x) => a + x.pr.price, 0);
+  const s = selected(), t = s.reduce((a, x) => a + x.pr.price * qtyOf(x.it), 0);
+  const units = s.reduce((a, x) => a + qtyOf(x.it), 0);
   $('#total').textContent = eur(t);
-  $('#count').textContent = s.length ? `${s.length} ${s.length === 1 ? 'prenda' : 'prendas'}` : 'Ninguna prenda seleccionada';
+  $('#count').textContent = units ? `${units} ${units === 1 ? 'prenda' : 'prendas'}` : 'Ninguna prenda seleccionada';
   return t;
 }
 
@@ -196,6 +223,16 @@ function onChange(e) {
   } else it[k] = t.value;
 }
 playersEl.addEventListener('click', e => {
+  const q = e.target.closest('[data-qty]');
+  if (q) {
+    const prodEl = q.closest('.prod'), p = players[+q.closest('.player').dataset.i];
+    const prod = CONFIG.products.find(x => x.id === prodEl.dataset.id);
+    const it = p.items[prod.id] = p.items[prod.id] || {};
+    it.qty = Math.min(prod.maxQty, Math.max(1, qtyOf(it) + +q.dataset.qty));
+    prodEl.querySelector('output').textContent = it.qty;
+    updateTotal();
+    return;
+  }
   if (e.target.matches('[data-remove]')) {
     players.splice(+e.target.closest('.player').dataset.i, 1);
     renderPlayers();
@@ -241,7 +278,7 @@ $('#form').addEventListener('submit', async e => {
     tutorName: $('#tName').value.trim(), tutorSurname: $('#tSurname').value.trim(), email: $('#tEmail').value.trim(),
     rows: selected().map(({ p, pr, it }) => ({
       player: `${p.name.trim()} ${p.surname.trim()}`, team: p.team, product: pr.name,
-      size: it.size || '', custom: (it.custom || '').trim(), price: pr.price
+      size: it.size || '', qty: qtyOf(it), custom: (it.custom || '').trim(), price: pr.price
     }))
   };
   const btn = $('#send'); btn.disabled = true; btn.textContent = 'Enviando…';
@@ -252,13 +289,31 @@ $('#form').addEventListener('submit', async e => {
     $('#app').innerHTML = `<section class="ok"><img src="img/logo.png" alt="">
       <h2>¡Pedido recibido!</h2>
       <p>Gracias, ${esc(payload.tutorName)}. Hemos registrado tu pedido <b>${orderId}</b> por un total de <b>${eur(total)}</b>.</p>
-      <ul class="sum">${payload.rows.map(r => `<li><b>${esc(r.player)}</b>: ${esc(r.product)}${r.size ? ' (' + esc(r.size) + ')' : ''}${r.custom ? ' · «' + esc(r.custom) + '»' : ''}</li>`).join('')}</ul></section>`;
+      <div class="pay" role="alert">
+        <div class="pay-h">Muy importante: falta un paso</div>
+        <div class="pay-b">
+          <p>Para formalizar el pedido debes hacer una transferencia por el importe del pedido (<span class="amt">${eur(total)}</span>) al número de cuenta de Larrobeltz.</p>
+          <div class="iban"><div><small>Número de cuenta</small><b>${esc(CONFIG.iban)}</b></div>
+            <button type="button" onclick="copyIban(this)">Copiar</button></div>
+          <p><b>Concepto:</b> debes indicar tu nombre y apellidos y tu número de pedido <b>${orderId}</b>.</p>
+          <p class="pay-warn">No se tramitará ningún pedido si no se ha realizado su correspondiente transferencia.</p>
+        </div>
+      </div>
+	  <p style="text-align: left; padding-left: 10%;">Datos de tu pedido:</p>
+      <ul class="sum">${payload.rows.map(r => `<li><b>${esc(r.player)}</b>: ${r.qty > 1 ? r.qty + ' × ' : ''}${esc(r.product)}${r.size ? ' (' + esc(r.size) + ')' : ''}${r.custom ? ' · «' + esc(r.custom) + '»' : ''}</li>`).join('')}</ul></section>`;
     window.scrollTo(0, 0);
   } catch (err) {
     btn.disabled = false; btn.textContent = 'Enviar pedido';
     fail('No se ha podido enviar el pedido. Revisa tu conexión e inténtalo de nuevo.');
   }
 });
+
+function copyIban(btn) {
+  navigator.clipboard.writeText(CONFIG.iban.replace(/\s/g, '')).then(() => {
+    btn.textContent = '¡Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar', 2000);
+  }).catch(() => {});
+}
 
 renderPlayers();
 </script>
