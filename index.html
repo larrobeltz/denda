@@ -68,6 +68,9 @@ input:focus-visible,select:focus-visible,button:focus-visible,.prod:focus-within
 .iban b{font:700 22px/1.2 var(--h);letter-spacing:.05em}
 .iban button{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:600 14px var(--b);cursor:pointer}
 .pay-warn{font-weight:600;color:var(--red-d);margin:14px 0 0!important}
+#notice{display:none;margin:18px 0 0;padding:14px 16px;border-radius:10px;font-size:15px;border:1.5px solid var(--line);background:#fff}
+#notice.closed{border-color:var(--red);background:#fff6f6;color:#7a0b0f;font-size:16px}
+#notice.closed b{display:block;font:700 24px/1.1 var(--h);text-transform:uppercase;margin-bottom:4px}
 .hp{position:absolute;left:-9999px}
 @media(max-width:520px){.grid2{grid-template-columns:1fr}.prods{gap:8px}section{padding:16px}}
 @media(prefers-reduced-motion:no-preference){.prod{transition:border-color .15s}}
@@ -82,6 +85,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,.prod:focus-within
 </div></header>
 
 <main class="wrap" id="app">
+<div id="notice" role="status"></div>
 <form id="form" novalidate>
   <section>
     <h2>Datos del padre, madre o tutor/a</h2>
@@ -112,6 +116,9 @@ const CONFIG = {
   // URL de la aplicación web de Google Apps Script (ver apps-script.gs)
   endpoint: 'https://script.google.com/macros/s/AKfycby2zyWGdlsQM8KJ9mjr9BOYIUjiMY15PtTkSktA-97vt32Tb_UupDyXcPo7xNnfj6WxJQ/exec',
   maxPlayers: 5,
+  // Fecha y hora límite para enviar pedidos, formato AAAA-MM-DDTHH:MM (hora local del visitante).
+  // Déjala vacía ('') para no poner límite.
+  deadline: '2026-11-25T23:59',
   // Cuenta del club para las transferencias (se muestra al terminar el pedido)
   iban: 'ES17 2095 0309 90 911425 3011',
   // Equipos del club. Deja la lista vacía [] para ocultar este campo.
@@ -271,6 +278,7 @@ function validate() {
 
 $('#form').addEventListener('submit', async e => {
   e.preventDefault();
+  if (checkDeadline()) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (!validate() || $('#hp').value) return;
   const total = updateTotal(), orderId = 'P' + Date.now().toString(36).toUpperCase();
   const payload = {
@@ -306,6 +314,26 @@ $('#form').addEventListener('submit', async e => {
     fail('No se ha podido enviar el pedido. Revisa tu conexión e inténtalo de nuevo.');
   }
 });
+
+const deadline = CONFIG.deadline ? new Date(CONFIG.deadline) : null;
+const deadlineText = deadline && deadline.toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
+// Devuelve true si el plazo ha terminado. Con hideForm=true oculta además el formulario.
+function checkDeadline(hideForm) {
+  const n = $('#notice'), btn = $('#send');
+  if (!n || !deadline || isNaN(deadline)) return false;   // sin plazo, o la página ya se ha reemplazado
+  if (Date.now() <= deadline.getTime()) return false;
+  n.className = 'closed';
+  n.innerHTML = `<b>El plazo para hacer pedidos ha finalizado</b>No se admiten más pedidos porque ha pasado la fecha y hora límite (${esc(deadlineText)}).`;
+  n.style.display = 'block';
+  btn.disabled = true; btn.textContent = 'Plazo cerrado';
+  if (hideForm) { $('#form').style.display = 'none'; $('#bar').style.display = 'none'; }
+  return true;
+}
+if (deadline && !isNaN(deadline) && !checkDeadline(true)) {
+  $('#notice').textContent = `Puedes enviar tu pedido hasta el ${deadlineText}.`;
+  $('#notice').style.display = 'block';
+}
+setInterval(() => checkDeadline(false), 30000);   // si el plazo termina con la página abierta
 
 function copyIban(btn) {
   navigator.clipboard.writeText(CONFIG.iban.replace(/\s/g, '')).then(() => {
